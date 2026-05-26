@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="periodicity_array">
+        <item>Única vez</item>
+        <item>Anual</item>
+    </string-array>
+    <string-array name="notification_array">
+        <item>Mismo día</item>
+        <item>1 día antes</item>
+        <item>3 días antes</item>
+        <item>1 semana antes</item>
+    </string-array>
+</resources>
