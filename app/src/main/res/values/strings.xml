@@ -8,6 +8,7 @@
     <string name="event_periodicity">Periodicidad</string>
     <string name="event_notification">Plazo de notificación</string>
     <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
     <string name="delete">Eliminar</string>
     <string name="edit_event">Editar Evento</string>
     <string name="confirm_delete_title">Confirmar eliminación</string>

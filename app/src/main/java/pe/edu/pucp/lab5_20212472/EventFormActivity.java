@@ -22,7 +22,7 @@ import java.util.Locale;
 public class EventFormActivity extends AppCompatActivity {
 
     private TextInputEditText etName;
-    private Button btnDate, btnTime, btnSave;
+    private Button btnDate, btnTime, btnSave, btnCancel;
     private Spinner spinnerPeriodicity, spinnerNotification;
     private Calendar selectedCalendar;
     private EventRepository repository;
@@ -49,6 +49,7 @@ public class EventFormActivity extends AppCompatActivity {
         spinnerPeriodicity = findViewById(R.id.spinnerPeriodicity);
         spinnerNotification = findViewById(R.id.spinnerNotification);
         btnSave = findViewById(R.id.btnSave);
+        btnCancel = findViewById(R.id.btnCancel);
 
         // Por defecto seleccionar '1 día antes'
         spinnerNotification.setSelection(1);
@@ -56,6 +57,7 @@ public class EventFormActivity extends AppCompatActivity {
         btnDate.setOnClickListener(v -> showDatePicker());
         btnTime.setOnClickListener(v -> showTimePicker());
         btnSave.setOnClickListener(v -> saveEvent());
+        btnCancel.setOnClickListener(v -> finish());
 
         // Verificar si es modo edición
         if (getIntent().hasExtra("event_id")) {
