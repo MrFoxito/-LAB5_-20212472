@@ -106,6 +106,8 @@ public class MainActivity extends AppCompatActivity {
     private void filterEventsFromDate(Calendar selectedDate) {
         if (allEvents == null || allEvents.isEmpty()) {
             adapter.updateList(new ArrayList<>());
+            rvEvents.setVisibility(View.GONE);
+            tvNoEvents.setVisibility(View.VISIBLE);
             return;
         }
 
@@ -130,19 +132,49 @@ public class MainActivity extends AppCompatActivity {
         }
 
         adapter.updateList(filtered);
+
+        if (filtered.isEmpty()) {
+            rvEvents.setVisibility(View.GONE);
+            tvNoEvents.setVisibility(View.VISIBLE);
+        } else {
+            rvEvents.setVisibility(View.VISIBLE);
+            tvNoEvents.setVisibility(View.GONE);
+        }
     }
 
     private void updateCalendar() {
-        List<EventDay> eventDays = new ArrayList<>();
+        java.util.Map<String, int[]> dateMap = new java.util.HashMap<>();
+        java.util.Map<String, Calendar> calMap = new java.util.HashMap<>();
+        
         for (Event event : allEvents) {
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(event.getDateInMillis());
-
-            // Color distinto para eventos anuales (verde) y unicos (azul)
-            int drawableRes = event.getPeriodicity().equals("Anual") ?
-                    R.drawable.dot_annual : R.drawable.dot_single;
-
-            eventDays.add(new EventDay(calendar, drawableRes));
+            String key = calendar.get(Calendar.YEAR) + "-" + calendar.get(Calendar.DAY_OF_YEAR);
+            
+            if (!dateMap.containsKey(key)) {
+                dateMap.put(key, new int[]{0, 0}); // {hasAnnual, hasSingle}
+                calMap.put(key, calendar);
+            }
+            
+            if (event.getPeriodicity().equals("Anual")) {
+                dateMap.get(key)[0] = 1;
+            } else {
+                dateMap.get(key)[1] = 1;
+            }
+        }
+        
+        List<EventDay> eventDays = new ArrayList<>();
+        for (String key : dateMap.keySet()) {
+            int[] types = dateMap.get(key);
+            int drawableRes;
+            if (types[0] == 1 && types[1] == 1) {
+                drawableRes = R.drawable.dot_multiple; // Ambos tipos
+            } else if (types[0] == 1) {
+                drawableRes = R.drawable.dot_annual; // Solo anual
+            } else {
+                drawableRes = R.drawable.dot_single; // Solo unico
+            }
+            eventDays.add(new EventDay(calMap.get(key), drawableRes));
         }
         calendarView.setEvents(eventDays);
     }
