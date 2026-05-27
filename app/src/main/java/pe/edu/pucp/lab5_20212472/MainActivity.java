@@ -104,6 +104,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void filterEventsFromDate(Calendar selectedDate) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", new Locale("es", "PE"));
+        android.widget.Toast.makeText(this, "Mostrando desde: " + sdf.format(selectedDate.getTime()), android.widget.Toast.LENGTH_SHORT).show();
+
         if (allEvents == null || allEvents.isEmpty()) {
             adapter.updateList(new ArrayList<>());
             rvEvents.setVisibility(View.GONE);
