@@ -5,13 +5,14 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.applandeo.materialcalendarview.CalendarView;
@@ -21,6 +22,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,9 +38,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        
+
+        // Crear canales de notificación
         NotificationReceiver.createNotificationChannels(this);
 
+        // Solicitar permiso de notificaciones para Android >= 13
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
@@ -53,8 +57,8 @@ public class MainActivity extends AppCompatActivity {
         fabAddEvent = findViewById(R.id.fabAddEvent);
 
         rvEvents.setLayoutManager(new LinearLayoutManager(this));
-        
-        adapter = new EventAdapter(new ArrayList<>(), this::deleteEvent);
+
+        adapter = new EventAdapter(new ArrayList<>(), this::confirmDeleteEvent, this::editEvent);
         rvEvents.setAdapter(adapter);
 
         fabAddEvent.setOnClickListener(v -> {
@@ -80,26 +84,27 @@ public class MainActivity extends AppCompatActivity {
     private void loadEvents() {
         allEvents = repository.getEvents();
         updateCalendar();
-        
+
         if (allEvents.isEmpty()) {
             tvNoEvents.setVisibility(View.VISIBLE);
             rvEvents.setVisibility(View.GONE);
         } else {
             tvNoEvents.setVisibility(View.GONE);
             rvEvents.setVisibility(View.VISIBLE);
-            
-            // Default filter to today
+
             Calendar today = Calendar.getInstance();
             filterEventsFromDate(today);
         }
     }
 
     private void filterEventsFromDate(Calendar selectedDate) {
-        if(allEvents == null || allEvents.isEmpty()) return;
-        
+        if (allEvents == null || allEvents.isEmpty()) {
+            adapter.updateList(new ArrayList<>());
+            return;
+        }
+
         List<Event> filtered = new ArrayList<>();
-        
-        // Reset selectedDate to start of day
+
         selectedDate.set(Calendar.HOUR_OF_DAY, 0);
         selectedDate.set(Calendar.MINUTE, 0);
         selectedDate.set(Calendar.SECOND, 0);
@@ -108,17 +113,16 @@ public class MainActivity extends AppCompatActivity {
         for (Event event : allEvents) {
             Calendar eventCal = Calendar.getInstance();
             eventCal.setTimeInMillis(event.getDateInMillis());
-            
             eventCal.set(Calendar.HOUR_OF_DAY, 0);
             eventCal.set(Calendar.MINUTE, 0);
             eventCal.set(Calendar.SECOND, 0);
             eventCal.set(Calendar.MILLISECOND, 0);
-            
+
             if (!eventCal.before(selectedDate)) {
                 filtered.add(event);
             }
         }
-        
+
         adapter.updateList(filtered);
     }
 
@@ -127,15 +131,25 @@ public class MainActivity extends AppCompatActivity {
         for (Event event : allEvents) {
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(event.getDateInMillis());
-            
-            int colorResource = event.getPeriodicity().equals("Anual") ? 
-                    pe.edu.pucp.lab5_20212472.R.color.annualEventColor : 
-                    pe.edu.pucp.lab5_20212472.R.color.singleEventColor;
-                    
-            int colorInt = androidx.core.content.ContextCompat.getColor(this, colorResource);
-            eventDays.add(new EventDay(calendar, pe.edu.pucp.lab5_20212472.R.drawable.baseline_circle_24, colorInt));
+
+            // Color distinto para eventos anuales (verde) y unicos (azul)
+            int drawableRes = event.getPeriodicity().equals("Anual") ?
+                    R.drawable.dot_annual : R.drawable.dot_single;
+
+            eventDays.add(new EventDay(calendar, drawableRes));
         }
         calendarView.setEvents(eventDays);
+    }
+
+    private void confirmDeleteEvent(Event event) {
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.confirm_delete_title))
+                .setMessage(getString(R.string.confirm_delete_message))
+                .setPositiveButton(getString(R.string.yes), (dialog, which) -> {
+                    deleteEvent(event);
+                })
+                .setNegativeButton(getString(R.string.no), null)
+                .show();
     }
 
     private void deleteEvent(Event event) {
@@ -144,17 +158,23 @@ public class MainActivity extends AppCompatActivity {
         cancelNotification(event);
         loadEvents();
     }
-    
+
+    private void editEvent(Event event) {
+        Intent intent = new Intent(this, EventFormActivity.class);
+        intent.putExtra("event_id", event.getId());
+        startActivity(intent);
+    }
+
     private void cancelNotification(Event event) {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(this, NotificationReceiver.class);
         int requestCode = event.getId().hashCode();
-        
+
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             flags |= PendingIntent.FLAG_IMMUTABLE;
         }
-        
+
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, requestCode, intent, flags);
         alarmManager.cancel(pendingIntent);
     }
